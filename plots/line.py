@@ -8,7 +8,7 @@ class Line(object):
         self.fig = fig
 
 
-    def add_line(self,
+    def line(self,
                  x:list,
                  y:list,
                  yaxis:str='left',

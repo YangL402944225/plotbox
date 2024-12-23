@@ -33,4 +33,3 @@ class LineModel(object):
 
 if __name__ == '__main__':
     a = LineModel()
-    print(a.get_color())

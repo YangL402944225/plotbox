@@ -1,7 +1,7 @@
 from plotly.subplots import make_subplots
-from models import PlotModel, LineModel
+from models import PlotModel, LineModel ,BarModel
 import pandas as pd
-from plots import Line
+from plots import Line,Bar
 
 class Fig(object):
     """
@@ -9,11 +9,11 @@ class Fig(object):
     """
 
     def __init__(self,
-                 title:str='',
-                 plot_model:PlotModel=None,
+                 title:str=None,
+                 plot_model:PlotModel=PlotModel(),
                  ):
-
-        self.plot_model = PlotModel() if plot_model is None else plot_model
+        self.title = title
+        self.plot_model = plot_model
 
         # 创建图对象
         self.fig = make_subplots(
@@ -40,7 +40,7 @@ class Fig(object):
                  y_name:str=None,
                  y_range:tuple=None,
                  group_name:str=None,
-                 line_model:LineModel=None,
+                 line_model:LineModel=LineModel(),
                  position:int=1,
                  ):
         row,col = self.plot_model.get_position(position)
@@ -51,8 +51,7 @@ class Fig(object):
         showlegend = True if group_name not in self.plot_model.legend else False
         if showlegend:
             self.plot_model.legend.append(group_name)
-
-        Line(fig=self.fig).add_line(
+        Line(fig=self.fig).line(
                                 x=data[x].values.tolist(),
                                 y=data[y].values.tolist(),
                                 yaxis=yaxis,
@@ -76,7 +75,7 @@ class Fig(object):
         self.plot_model.set_x_text(data[x].values.tolist())
 
         if str(row) + str(col) not in self.plot_model.axes_list:
-            self.__set_xaxes__(row=row,col=col)
+            self.__set_xaxes__(x=data[x].values.tolist(),row=row,col=col)
             self.plot_model.axes_list.append(str(row) + str(col))
 
         if yaxis+str(row)+str(col) not in self.plot_model.axes_list:
@@ -87,7 +86,57 @@ class Fig(object):
             # 如果是1*1的图，切设置了副轴，则图例向右偏移5%，避免遮挡
             self.plot_model.updata_legend_offset_x()
 
-    def __set_xaxes__(self,row:int=1,col:int=1):
+
+    def add_bar(self,
+        data:pd.DataFrame,
+        x:str,
+        y:str,
+        yaxis='left',
+        text_val:tuple=None,
+        y_name:str=None,
+        y_range:tuple=None,
+        group_name:str=None,
+        bar_model:BarModel=BarModel(),
+        position:int=1,
+        ):
+        """添加柱状图"""
+        row, col = self.plot_model.get_position(position)
+        color = bar_model.get_color()
+        group_name = y if group_name is None else group_name
+        showlegend = True if group_name not in self.plot_model.legend else False
+        if showlegend:
+            self.plot_model.legend.append(group_name)
+        Bar(fig=self.fig).bar(
+                x=data[x].values.tolist(),
+                y=data[y].values.tolist(),
+                yaxis=yaxis,
+                text_val=text_val,
+                group_name=group_name,
+                color=color,
+                width=bar_model.width,
+                text_size=bar_model.text_size,
+                opacity=bar_model.opacity,
+                family=self.plot_model.family,
+                showlegend=showlegend,
+                row=row,
+                col=col,
+        )
+        self.plot_model.set_x_text(data[x].values.tolist())
+
+        if str(row) + str(col) not in self.plot_model.axes_list:
+            self.__set_xaxes__(x=data[x].values.tolist(),row=row,col=col)
+            self.plot_model.axes_list.append(str(row) + str(col))
+
+        if yaxis+str(row)+str(col) not in self.plot_model.axes_list:
+            self.__set_yaxes__(row=row,col=col,yaxis=yaxis,y_name=y_name,y_range=y_range)
+            self.plot_model.axes_list.append(yaxis+str(row)+str(col))
+
+        if self.plot_model.rows * self.plot_model.cols == 1 and yaxis == 'right':
+            # 如果是1*1的图，切设置了副轴，则图例向右偏移5%，避免遮挡
+            self.plot_model.updata_legend_offset_x()
+
+
+    def __set_xaxes__(self,x,row:int=1,col:int=1):
         self.fig.update_xaxes(
             title=None,
             showline=not self.plot_model.is_x_zero,
@@ -95,17 +144,17 @@ class Fig(object):
 
             type='category',  # 禁用自动处理X轴格式
             automargin=True,
-            titlefont=dict(size=self.plot_model.text_size[0],
+            titlefont=dict(size=self.plot_model.text_size[2],
                            family=self.plot_model.family,
                            color=self.plot_model.text_color1,
             ),
             tickfont=dict(color=self.plot_model.text_color1,
                           family=self.plot_model.family,
-                          size=self.plot_model.text_size[0],
+                          size=self.plot_model.text_size[2],
             ),
             tickangle=self.plot_model.tickangle,
-            tickvals=list(range(len(self.plot_model.x_text))),
-            ticktext=[str(i) for i in self.plot_model.x_text],
+            tickvals=list(range(len(x))),
+            ticktext=x,
             showgrid=True,
             zeroline=self.plot_model.is_x_zero,
             linecolor=self.plot_model.ticks_colosr,
@@ -122,13 +171,13 @@ class Fig(object):
         self.fig.update_yaxes(
             title=y_name,
             range=y_range,
-            titlefont=dict(size=self.plot_model.text_size[0],
+            titlefont=dict(size=self.plot_model.text_size[2],
                            family=self.plot_model.family,
                            color=self.plot_model.text_color1,
             ),
             tickfont=dict(color=self.plot_model.text_color1,
                           family=self.plot_model.family,
-                          size=self.plot_model.text_size[0],
+                          size=self.plot_model.text_size[2],
             ),
             showgrid=not secondary_y,
             zeroline=self.plot_model.is_x_zero,
@@ -148,10 +197,10 @@ class Fig(object):
     def show(self,side='left'):
         annotations = []
         if self.plot_model.is_x_zero:
-            for i, label in enumerate(self.plot_model.x_text):
+            for index, label in enumerate(self.plot_model.x_text):
                 annotations.append(
                     dict(
-                        x=i,  # 刻度位置
+                        x=index,  # 刻度位置
                         y=0,  # 偏移后的位置
                         text=label,  # 自定义标签
                         showarrow=False,  # 不显示箭头
@@ -186,11 +235,11 @@ class Fig(object):
                                width=self.plot_model.size[0],
                                height=self.plot_model.size[1],
             )
-
         self.fig.show(config={'displaylogo':False})
 
 
 if __name__ == '__main__':
+    # 2024年12月23日23:49:00
     df = pd.DataFrame()
     df['时间'] = ['201501', '201502', '201503', '201504', '201505', '201506',
                    '201507','201508', '201509', '201510', '201511', '201512']
@@ -198,27 +247,13 @@ if __name__ == '__main__':
     df['数据2'] = [3.9, 5.9, 11.1, 18.7, 48.3, 69.2, 231.6, 46.6, 55.4, 18.4, 10.3, 0.7]
     df['数据3'] = [0.01, 0.02, 0.01, 0.02, 0.01, 0.028, 0.035, 0.047, 0.078, 0.064, 0.042, 0.039]
 
-    s = PlotModel(grid=(2,2))
+    s = PlotModel(grid=(1,1),vertical_spacing=0.05,horizontal_spacing=0.05,)
     fig = Fig(plot_model=s,title='表的名称')
-
     ls1 = LineModel()
     ls2 = LineModel(color='#ce5c5c')
     ls3 = LineModel(color='#fbc357')
-
-    fig.add_line(df,x='时间',y='数据1',yaxis='left',y_name='数据轴',position=1,y_range=(0,500),line_model=ls1)
-    fig.add_line(df,x='时间',y='数据2',yaxis='left',y_name='数据轴',position=1,y_range=(0,500),line_model=ls1)
-    fig.add_line(df,x='时间',y='数据3',yaxis='right',position=1,y_range=(0,0.1),line_model=ls1)
-
-    fig.add_line(df,x='时间',y='数据1',yaxis='left',y_name='数据轴',position=2,y_range=(0,500),line_model=ls1)
-    fig.add_line(df,x='时间',y='数据2',yaxis='left',y_name='数据轴',position=2,y_range=(0,500),line_model=ls2)
-    fig.add_line(df,x='时间',y='数据3',yaxis='right',position=2,y_range=(0,0.1),line_model=ls3)
-
-    fig.add_line(df,x='时间',y='数据1',yaxis='left',y_name='数据轴',position=3,y_range=(0,500),line_model=ls1)
-    fig.add_line(df,x='时间',y='数据2',yaxis='left',y_name='数据轴',position=3,y_range=(0,500),line_model=ls2)
-    fig.add_line(df,x='时间',y='数据3',yaxis='right',position=3,y_range=(0,0.1),line_model=ls3)
-
-    fig.add_line(df,x='时间',y='数据1',yaxis='left',y_name='数据轴',position=4,y_range=(0,500),line_model=ls1)
-    fig.add_line(df,x='时间',y='数据2',yaxis='left',y_name='数据轴',position=4,y_range=(0,500),line_model=ls2)
-    fig.add_line(df,x='时间',y='数据3',yaxis='right',position=4,y_name='数据轴2',y_range=(0,0.1),line_model=ls3)
-
+    for i in range(1,2):
+        fig.add_bar(df,x='时间',y='数据1',yaxis='left',y_name='数据轴',position=i,y_range=(0,500))
+        fig.add_bar(df,x='时间',y='数据2',yaxis='left',y_name='数据轴',position=i,y_range=(0,500))
+        fig.add_line(df,x='时间',y='数据3',yaxis='right',position=i,y_range=(0,0.1),line_model=ls1)
     fig.show()
