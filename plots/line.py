@@ -1,4 +1,4 @@
-from models import LineModel
+#from models import LineModel
 import plotly.graph_objects as go
 
 
@@ -16,7 +16,7 @@ class Line(object):
                  group_name=None,
                  line_model='lines+markesrs',
                  showlegend:bool=True,
-                 hollow_color='white',
+                 hollow_color:str='white',
                  marker_size=None,
                  marker_symbol=None,
                  color=None,
@@ -30,9 +30,7 @@ class Line(object):
                  col:int=1,
                  ):
         """绘制一条曲线"""
-        line_model = LineModel() if line_model is None else line_model
         secondary_y =False if yaxis == 'left' else True  # 标记副轴
-
         self.fig.add_trace(
             go.Scatter(
                 x=x,
